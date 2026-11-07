@@ -1,0 +1,12 @@
+
+BUILD:
+cmake -S . -B build/main
+cmake --build build/main
+
+BUILD EMSCRIPTEM:
+run this to add path to shell source, maybe it'll just work after next restart without this
+source "/home/e/Documents/repos/emsdk/emsdk_env.sh"
+
+emcmake cmake -S . -B build/web
+cd build/web
+emmake make
