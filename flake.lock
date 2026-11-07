@@ -1,0 +1,63 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1793876309,
+        "narHash": "sha256-Wojg9lIH/hDH91iDVH2/EPw8oDSpxjxhXONbU1yf4Zg=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "f9a75f41be3a74eab55d3a7679d34ad6cc0da977",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "sdl3-image-src": "sdl3-image-src",
+        "sdl3-src": "sdl3-src"
+      }
+    },
+    "sdl3-image-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1741038197,
+        "narHash": "sha256-/orQ+YfH0CV8DOqXFMF9fOT4YaVpC1t55xM3j520Png=",
+        "owner": "libsdl-org",
+        "repo": "SDL_image",
+        "rev": "11154afb7855293159588b245b446a4ef09e574f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "libsdl-org",
+        "ref": "release-3.2.4",
+        "repo": "SDL_image",
+        "type": "github"
+      }
+    },
+    "sdl3-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1754326735,
+        "narHash": "sha256-ESYjTN2prkAeHcTYurZaWeM3RgEKtwCZrt9gSMcOAe0=",
+        "owner": "libsdl-org",
+        "repo": "SDL",
+        "rev": "96292a5b464258a2b926e0a3d72f8b98c2a81aa6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "libsdl-org",
+        "ref": "release-3.2.20",
+        "repo": "SDL",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
