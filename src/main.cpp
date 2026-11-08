@@ -25,8 +25,8 @@
 //     });
 // #endif
 
-#define GAME_SIZE_X 100
-#define GAME_SIZE_Y 100
+#define GAME_SIZE_X 320
+#define GAME_SIZE_Y 360
 
 Uint64 prev_time;
 struct Player { //or like a collision_object
@@ -101,7 +101,7 @@ struct AppState {
     SDL_Window *window;
     SDL_Renderer *renderer;
 
-    SDL_Texture * brick_texture;
+    SDL_Texture * background_texture;
     SDL_Texture* targetTexture;
 
     //rock information? behöver size
@@ -145,13 +145,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         return SDL_APP_FAILURE;
     }
 
-    //SDL_SetWindowFullscreen(as->window, true);
+    SDL_SetWindowFullscreen(as->window, true);
 
     as->targetTexture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, GAME_SIZE_X, GAME_SIZE_Y);
 
     prev_time = SDL_GetTicks();
     as->player_holding = ACTION_NONE;
-    as->brick_texture = IMG_LoadTexture(as->renderer, "assets/textures/bricks.png");
+    as->background_texture = IMG_LoadTexture(as->renderer, "assets/textures/background.png");
 
     SDL_Texture* player_texture = IMG_LoadTexture(as->renderer, "assets/textures/T.png");
     SDL_Texture* bug_texture = IMG_LoadTexture(as->renderer, "assets/textures/bug.png");
@@ -180,32 +180,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     float delta_time = current_time - prev_time; //probably makes zero sense
     delta_time /= 1000.0; //make it slow....
 
+    // game logic
+
     const bool *key_states = SDL_GetKeyboardState(NULL);
-
-    // render to pixel perfect canvas
-    SDL_SetRenderTarget(as->renderer, as->targetTexture);
-    SDL_SetTextureScaleMode(as->targetTexture, SDL_SCALEMODE_NEAREST);
-
-    // clear renderer
-    SDL_SetRenderDrawColor(as->renderer, 30, 30, 30, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(as->renderer);
-
-    // draw colored rectangle
-    SDL_FRect rect;
-    rect.x = 20;
-    rect.y = 20;
-    rect.w = 20;
-    rect.h = 20;
-
-    SDL_SetRenderDrawColor(as->renderer, 80, 80, 255, SDL_ALPHA_OPAQUE);
-    SDL_RenderFillRect(as->renderer, &rect);
-
-    // draw bricks.png
-    SDL_FRect rectBricks;
-    rectBricks.x = 10;
-    rectBricks.y = 10;
-    rectBricks.w = 16;
-    rectBricks.h = 16;
 
     //kanske vertikal och horisontell speed för att simulera att ramla
     float speed = 50;
@@ -215,6 +192,19 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     std::pair<float,float> newPos = as->player.coords + newDirection * speed;
 
     as->player.coords = newPos;
+
+    // draw game
+
+    // render to pixel perfect canvas
+    SDL_SetRenderTarget(as->renderer, as->targetTexture);
+    SDL_SetTextureScaleMode(as->targetTexture, SDL_SCALEMODE_NEAREST);
+
+    // clear renderer
+    SDL_SetRenderDrawColor(as->renderer, 30, 30, 30, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(as->renderer);
+
+    // background
+    SDL_RenderTexture(as->renderer, as->background_texture, NULL, NULL);
 
     SDL_FRect rectPlayer;
     rectPlayer.x = as->player.coords.first;
@@ -239,7 +229,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         //throw rock
     }
 
-    SDL_RenderTexture(as->renderer, as->brick_texture, NULL, &rectBricks);
     SDL_RenderTexture(as->renderer, as->player.texture, NULL, &rectPlayer);
     SDL_RenderTexture(as->renderer, as->enemy.texture, NULL, &rectEnemy);
     
