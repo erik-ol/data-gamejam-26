@@ -20,11 +20,15 @@
 //     });
 // #endif
 
+#define GAME_SIZE_X 640
+#define GAME_SIZE_Y 480
+
 struct AppState {
     SDL_Window *window;
     SDL_Renderer *renderer;
 
     SDL_Texture * brick_texture;
+    SDL_Texture* targetTexture;
 };
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
@@ -38,10 +42,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         return SDL_APP_FAILURE;
     }
-    if (!SDL_CreateWindowAndRenderer("GAME NAME", 640, 480, SDL_WINDOW_RESIZABLE, &as->window, &as->renderer)) {
+
+    if (!SDL_CreateWindowAndRenderer("GAME NAME", GAME_SIZE_X, GAME_SIZE_Y, SDL_WINDOW_RESIZABLE, &as->window, &as->renderer)) {
         //SDL_Log("Couldn't create window and renderer: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+
+    as->targetTexture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, GAME_SIZE_X, GAME_SIZE_Y);
 
     as->brick_texture = IMG_LoadTexture(as->renderer, "assets/textures/bricks.png");
 
@@ -50,6 +57,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
     AppState *as = (AppState *)appstate;
+
+    // render to pixel perfect canvas
+    SDL_SetRenderTarget(as->renderer, as->targetTexture);
 
     // clear renderer
     SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -73,7 +83,29 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     rectBricks.h = 16;
 
     SDL_RenderTexture(as->renderer, as->brick_texture, NULL, &rectBricks);
+    
+    // render from perfect canvas to full screen
 
+    int *windowWidth;
+    int *windowHeight;
+    SDL_GetWindowSize(as->window, windowWidth, windowHeight);
+
+    // int gameScale = 1;
+    // int ratioX = *windowWidth / GAME_SIZE_X;
+    // int ratioY = *windowHeight / GAME_SIZE_Y;
+    // if (ratioX < ratioY) gameScale = ratioX;
+    // else gameScale = ratioY;
+
+    // SDL_FRect rectGame;
+    // rectGame.w = GAME_SIZE_X * gameScale;
+    // rectGame.h = GAME_SIZE_Y * gameScale;
+    // rectGame.x = *windowWidth-(rectGame.w/2);
+    // rectGame.y = *windowHeight-(rectGame.h/2);
+
+    SDL_SetRenderTarget(as->renderer, NULL);
+    SDL_RenderClear(as->renderer);
+    SDL_RenderTexture(as->renderer, as->targetTexture, NULL, NULL);
+    
     // pass to screen
 
     SDL_RenderPresent(as->renderer);
