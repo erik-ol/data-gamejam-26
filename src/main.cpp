@@ -24,7 +24,7 @@
 //     });
 // #endif
 
-Uint32 prev_time;
+Uint64 prev_time;
 struct Player { //or like a collision_object
     //I need position to draw
     // top left position
@@ -130,12 +130,13 @@ float HIGH_LIMIT = 0.1f;
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
     AppState *as = (AppState *)appstate;
-    Uint32 current_time = SDL_GetTicks();
+    Uint64 current_time = SDL_GetTicks();
     //https://stackoverflow.com/questions/26576625/how-can-i-correctly-calculate-the-time-delta
     float delta_time = current_time - prev_time; //probably makes zero sense
     // std::cout << delta_time <<"\n";
-    delta_time = std::clamp(delta_time, LOW_LIMIT, HIGH_LIMIT);
-    // delta_time /= 1000.0; //make it slow....
+    // delta_time = std::clamp(delta_time, LOW_LIMIT, HIGH_LIMIT);
+    delta_time /= 1000.0; //make it slow....
+    std::cout << "time: " << delta_time<<"\n";
 
     // clear renderer
     SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -159,8 +160,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     rectBricks.h = 16;
 
     //move player
+
+    float speed = 50;
+
     std::pair<float,float> newDirection = direction_user_should_move(delta_time);
-    std::pair<float,float> newPos = as->player.coords + newDirection;
+    std::pair<float,float> newPos = as->player.coords + newDirection * speed;
     std::cout << newPos.first << " " << newDirection.first << " " << as->player.coords.first << "\n";
 
     as->player.coords = newPos;
