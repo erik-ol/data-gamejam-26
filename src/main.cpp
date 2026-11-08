@@ -20,8 +20,8 @@
 //     });
 // #endif
 
-#define GAME_SIZE_X 640
-#define GAME_SIZE_Y 480
+#define GAME_SIZE_X 100
+#define GAME_SIZE_Y 100
 
 struct AppState {
     SDL_Window *window;
@@ -39,6 +39,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         *appstate = as;
     }
 
+    SDL_SetHint("SDL_HINT_RENDER_SCALE_QUALITY", "0");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         return SDL_APP_FAILURE;
     }
@@ -47,6 +49,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         //SDL_Log("Couldn't create window and renderer: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+
+    //SDL_SetWindowFullscreen(as->window, true);
 
     as->targetTexture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, GAME_SIZE_X, GAME_SIZE_Y);
 
@@ -60,25 +64,26 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     // render to pixel perfect canvas
     SDL_SetRenderTarget(as->renderer, as->targetTexture);
+    SDL_SetTextureScaleMode(as->targetTexture, SDL_SCALEMODE_NEAREST);
 
     // clear renderer
-    SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+    SDL_SetRenderDrawColor(as->renderer, 30, 30, 30, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(as->renderer);
 
     // draw colored rectangle
     SDL_FRect rect;
-    rect.x = 50;
-    rect.y = 50;
-    rect.w = 50;
-    rect.h = 50;
+    rect.x = 20;
+    rect.y = 20;
+    rect.w = 20;
+    rect.h = 20;
 
     SDL_SetRenderDrawColor(as->renderer, 80, 80, 255, SDL_ALPHA_OPAQUE);
     SDL_RenderFillRect(as->renderer, &rect);
 
     // draw bricks.png
     SDL_FRect rectBricks;
-    rectBricks.x = 100;
-    rectBricks.y = 100;
+    rectBricks.x = 10;
+    rectBricks.y = 10;
     rectBricks.w = 16;
     rectBricks.h = 16;
 
@@ -86,25 +91,26 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     
     // render from perfect canvas to full screen
 
-    int *windowWidth;
-    int *windowHeight;
-    SDL_GetWindowSize(as->window, windowWidth, windowHeight);
+    int windowWidth;
+    int windowHeight;
+    SDL_GetWindowSizeInPixels(as->window, &windowWidth, &windowHeight);
 
-    // int gameScale = 1;
-    // int ratioX = *windowWidth / GAME_SIZE_X;
-    // int ratioY = *windowHeight / GAME_SIZE_Y;
-    // if (ratioX < ratioY) gameScale = ratioX;
-    // else gameScale = ratioY;
+    int gameScale = 1;
+    int ratioX = windowWidth / GAME_SIZE_X;
+    int ratioY = windowHeight / GAME_SIZE_Y;
+    if (ratioX < ratioY) gameScale = ratioX;
+    else gameScale = ratioY;
 
-    // SDL_FRect rectGame;
-    // rectGame.w = GAME_SIZE_X * gameScale;
-    // rectGame.h = GAME_SIZE_Y * gameScale;
-    // rectGame.x = *windowWidth-(rectGame.w/2);
-    // rectGame.y = *windowHeight-(rectGame.h/2);
+    SDL_FRect rectGame;
+    rectGame.w = GAME_SIZE_X * gameScale;
+    rectGame.h = GAME_SIZE_Y * gameScale;
+    rectGame.x = (windowWidth/2)-(rectGame.w/2);
+    rectGame.y = (windowHeight/2)-(rectGame.h/2);
 
     SDL_SetRenderTarget(as->renderer, NULL);
+    SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(as->renderer);
-    SDL_RenderTexture(as->renderer, as->targetTexture, NULL, NULL);
+    SDL_RenderTexture(as->renderer, as->targetTexture, NULL, &rectGame);
     
     // pass to screen
 
