@@ -54,7 +54,33 @@ template <typename T,typename U>
 std::pair<T,U> operator+(const std::pair<T,U> & l,const std::pair<T,U> & r) {
     return {l.first+r.first,l.second+r.second};
 }
+//overloading += might be harder if I don't know LHS
+//would have to do with classes
 
+//taken from SDL3 guide #https://wiki.libsdl.org/SDL3/BestKeyboardPractices
+/* returns 1 if moving forward with this keypress, -1 if moving backward, 0 if not moving. */
+std::pair<int,int> direction_user_should_move()
+{
+    const bool *key_states = SDL_GetKeyboardState(NULL);
+    std::pair<int,int> direction = {0, 0};
+
+    if (key_states[SDL_SCANCODE_W]) {
+        direction = direction + std::pair(0,-1);
+    }
+
+    if (key_states[SDL_SCANCODE_A]) {
+        direction = direction + std::pair(-1,0);
+    }
+
+    if (key_states[SDL_SCANCODE_S]) {
+        direction = direction + std::pair(0, 1);
+    }
+
+    if (key_states[SDL_SCANCODE_D]) {
+        direction = direction + std::pair(1,0);
+    }
+    return direction;
+}
 
 struct AppState {
     SDL_Window *window;
@@ -123,9 +149,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     }
 
     //move player
-    int newPosX = as->player.coords.first + as->player.direction.first;
-    int newPosy = as->player.coords.second + as->player.direction.second;
-    as->player.coords = {newPosX, newPosy};
+    std::pair<int,int> newDirection = direction_user_should_move();
+    std::pair<int,int> newPos = as->player.coords + newDirection;
+    as->player.coords = newPos;
 
     SDL_FRect rectPlayer;
     rectPlayer.x = as->player.coords.first;
