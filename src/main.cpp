@@ -1,5 +1,6 @@
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_timer.h>
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -7,7 +8,8 @@
 #include <SDL3_image/SDL_image.h>
 
 #include <string>
-
+#include <algorithm>
+#include <iostream>
 // Web save game
 // #ifdef __EMSCRIPTEN__
 //     EM_ASM({
@@ -21,17 +23,19 @@
 //     return JSON.parse(localStorage.getItem('torskGameVar'));
 //     });
 // #endif
+
+Uint32 prev_time;
 struct Player { //or like a collision_object
     //I need position to draw
     // top left position
-    std::pair<int, int> coords;
+    std::pair<float, float> coords;
     //x and y scale respectively
     std::pair<int, int> sizes;
 
     // left/right is as you'd expect (number line),
     // up/down is inverted,
     // and these should be floats
-    std::pair<int, int> direction;
+    std::pair<float, float> direction;
 
     //maybe also a texture?
     SDL_Texture* texture;
@@ -39,49 +43,52 @@ struct Player { //or like a collision_object
     Player(std::pair<int, int> co, std::pair<int, int> sz, SDL_Texture* txt) {
         this->coords = co;
         this->sizes = sz;
-        this->direction = {1, 0};
+        this->direction = {1.0, 0.0};
         this->texture = txt;
     }
-    // det här skulle kunna vara bättre som ett objeckt så att man kan
-    // konstruera det så fort man deklarerar ett objekt.
-    // nåja
 };
 
 //https://stackoverflow.com/questions/21956119/add-stdpair-with-operator
 // i'm only really intending to use this for ints and floats
 // but why not
+//overloading += might be harder if I don't know LHS
+//would have to do with classes
 template <typename T,typename U>
 std::pair<T,U> operator+(const std::pair<T,U> & l,const std::pair<T,U> & r) {
     return {l.first+r.first,l.second+r.second};
 }
-//overloading += might be harder if I don't know LHS
-//would have to do with classes
+template <typename T,typename U, typename V>
+std::pair<T,U> operator*(const std::pair<T,U> & l,const V & r) {
+    return {l.first*r,l.second*r};
+}
 
 //taken from SDL3 guide #https://wiki.libsdl.org/SDL3/BestKeyboardPractices
 /* returns 1 if moving forward with this keypress, -1 if moving backward, 0 if not moving. */
-std::pair<int,int> direction_user_should_move()
+std::pair<float,float> direction_user_should_move(float delta_time)
 {
     const bool *key_states = SDL_GetKeyboardState(NULL);
-    std::pair<int,int> direction = {0, 0};
+    std::pair<float,float> direction = {0, 0};
 
     if (key_states[SDL_SCANCODE_W]) {
-        direction = direction + std::pair(0,-1);
+        direction = direction + std::pair(0.0f,-1.0f);
     }
 
     if (key_states[SDL_SCANCODE_A]) {
-        direction = direction + std::pair(-1,0);
+        direction = direction + std::pair(-1.0f,0.0f);
     }
 
     if (key_states[SDL_SCANCODE_S]) {
-        direction = direction + std::pair(0, 1);
+        direction = direction + std::pair(0.0f, 1.0f);
     }
 
     if (key_states[SDL_SCANCODE_D]) {
-        direction = direction + std::pair(1,0);
+        direction = direction + std::pair(1.0f,0.0f);
     }
+
+    direction = direction * delta_time; //int float multiply, probably works
+    std::cout << "new awesome direction" << direction.first << " " << direction.second << " \n";
     return direction;
 }
-
 struct AppState {
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -106,6 +113,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         return SDL_APP_FAILURE;
     }
 
+    prev_time = SDL_GetTicks();
     as->brick_texture = IMG_LoadTexture(as->renderer, "assets/textures/bricks.png");
 
     SDL_Texture* player_texture = IMG_LoadTexture(as->renderer, "assets/textures/T.png");
@@ -117,8 +125,17 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     return SDL_APP_CONTINUE;
 }
 
+float LOW_LIMIT = 0.0167f;
+float HIGH_LIMIT = 0.1f;
+
 SDL_AppResult SDL_AppIterate(void *appstate) {
     AppState *as = (AppState *)appstate;
+    Uint32 current_time = SDL_GetTicks();
+    //https://stackoverflow.com/questions/26576625/how-can-i-correctly-calculate-the-time-delta
+    float delta_time = current_time - prev_time; //probably makes zero sense
+    // std::cout << delta_time <<"\n";
+    delta_time = std::clamp(delta_time, LOW_LIMIT, HIGH_LIMIT);
+    // delta_time /= 1000.0; //make it slow....
 
     // clear renderer
     SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -141,16 +158,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     rectBricks.w = 16;
     rectBricks.h = 16;
 
-    //change direction
-    if (as->player.coords.first > 100) {
-        as->player.direction = std::pair(-1, 0);
-    } else if ( as->player.coords.first < 0) {
-        as->player.direction = std::pair(1, 0);
-    }
-
     //move player
-    std::pair<int,int> newDirection = direction_user_should_move();
-    std::pair<int,int> newPos = as->player.coords + newDirection;
+    std::pair<float,float> newDirection = direction_user_should_move(delta_time);
+    std::pair<float,float> newPos = as->player.coords + newDirection;
+    std::cout << newPos.first << " " << newDirection.first << " " << as->player.coords.first << "\n";
+
     as->player.coords = newPos;
 
     SDL_FRect rectPlayer;
@@ -165,7 +177,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // pass to screen
 
     SDL_RenderPresent(as->renderer);
-
+    prev_time = current_time;
     return SDL_APP_CONTINUE;
 }
 
