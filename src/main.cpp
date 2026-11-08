@@ -95,6 +95,7 @@ struct AppState {
 
     SDL_Texture * brick_texture;
     Player player;
+    Player enemy;
 };
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
@@ -117,14 +118,18 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     as->brick_texture = IMG_LoadTexture(as->renderer, "assets/textures/bricks.png");
 
     SDL_Texture* player_texture = IMG_LoadTexture(as->renderer, "assets/textures/T.png");
+    SDL_Texture* bug_texture = IMG_LoadTexture(as->renderer, "assets/textures/bug.png");
 
     Player player({50, 50}, {32, 32}, player_texture);
+    Player enemy({50, 50}, {87, 36}, bug_texture);
 
     as->player = player;
+    as->enemy = enemy;
 
     return SDL_APP_CONTINUE;
 }
 
+//kanske borde definiera konstanter,
 float LOW_LIMIT = 0.0167f;
 float HIGH_LIMIT = 0.1f;
 
@@ -133,24 +138,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     Uint64 current_time = SDL_GetTicks();
     //https://stackoverflow.com/questions/26576625/how-can-i-correctly-calculate-the-time-delta
     float delta_time = current_time - prev_time; //probably makes zero sense
-    // std::cout << delta_time <<"\n";
-    // delta_time = std::clamp(delta_time, LOW_LIMIT, HIGH_LIMIT);
     delta_time /= 1000.0; //make it slow....
     std::cout << "time: " << delta_time<<"\n";
 
     // clear renderer
     SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(as->renderer);
-
-    // draw colored rectangle
-    SDL_FRect rect;
-    rect.x = 50;
-    rect.y = 50;
-    rect.w = 50;
-    rect.h = 50;
-
-    SDL_SetRenderDrawColor(as->renderer, 80, 80, 255, SDL_ALPHA_OPAQUE);
-    SDL_RenderFillRect(as->renderer, &rect);
 
     // draw bricks.png
     SDL_FRect rectBricks;
@@ -160,12 +153,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     rectBricks.h = 16;
 
     //move player
-
+    //kanske vertikal och horisontell speed för att simulera att ramla
     float speed = 50;
 
     std::pair<float,float> newDirection = direction_user_should_move(delta_time);
     std::pair<float,float> newPos = as->player.coords + newDirection * speed;
-    std::cout << newPos.first << " " << newDirection.first << " " << as->player.coords.first << "\n";
+    // std::cout << newPos.first << " " << newDirection.first << " " << as->player.coords.first << "\n";
 
     as->player.coords = newPos;
 
@@ -175,11 +168,16 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     rectPlayer.w = as->player.sizes.first;
     rectPlayer.h = as->player.sizes.second;
 
+    SDL_FRect rectEnemy;
+    rectEnemy.x = as->enemy.coords.first;
+    rectEnemy.y = as->enemy.coords.second;
+    rectEnemy.w = as->enemy.sizes.first;
+    rectEnemy.h = as->enemy.sizes.second;
+
     SDL_RenderTexture(as->renderer, as->brick_texture, NULL, &rectBricks);
     SDL_RenderTexture(as->renderer, as->player.texture, NULL, &rectPlayer);
-
+    SDL_RenderTexture(as->renderer, as->enemy.texture, NULL, &rectEnemy);
     // pass to screen
-
     SDL_RenderPresent(as->renderer);
     prev_time = current_time;
     return SDL_APP_CONTINUE;
