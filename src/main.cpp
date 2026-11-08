@@ -1,3 +1,4 @@
+#include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_timer.h>
@@ -85,19 +86,39 @@ std::pair<float,float> direction_user_should_move(float delta_time)
         direction = direction + std::pair(1.0f,0.0f);
     }
 
-    direction = direction * delta_time; //int float multiply, probably works
-    std::cout << "new awesome direction" << direction.first << " " << direction.second << " \n";
+    direction = direction * delta_time;
     return direction;
 }
+
+
+//https://wiki.libsdl.org/SDL3/BestKeyboardPractices
+enum Action { ACTION_NONE, ACTION_THROW, ACTION_HOLD};
+
 struct AppState {
     SDL_Window *window;
     SDL_Renderer *renderer;
 
     SDL_Texture * brick_texture;
+    SDL_Texture * rock_texture;
+
+    //rock information? behöver size
+    Action player_holding;
+
     Player player;
     Player enemy;
 };
 
+Action action_user_should_take(const SDL_Event *e) {
+    if (e->type == SDL_EVENT_KEY_DOWN && e->key.scancode == SDL_SCANCODE_N) {
+        return ACTION_HOLD;
+    } else if (e->type == SDL_EVENT_KEY_UP && e->key.scancode == SDL_SCANCODE_N) {
+        return ACTION_THROW;
+    }
+    return ACTION_NONE;
+}
+//1. lägg till sten
+// 2. när man trycker på N så ska stenen dyka upp vid karaktärerna och följa karaktärern
+// 3. när man släpper N så ska stenen flyga iväg i riktningen spelaren tittar på
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     AppState *as = (AppState *)SDL_calloc(1, sizeof(AppState));
     if (!as) {
@@ -115,13 +136,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     }
 
     prev_time = SDL_GetTicks();
+    as->player_holding = ACTION_NONE;
     as->brick_texture = IMG_LoadTexture(as->renderer, "assets/textures/bricks.png");
+    as->rock_texture = IMG_LoadTexture(as->renderer, "assets/textures/rock.png");
 
     SDL_Texture* player_texture = IMG_LoadTexture(as->renderer, "assets/textures/T.png");
     SDL_Texture* bug_texture = IMG_LoadTexture(as->renderer, "assets/textures/bug.png");
 
     Player player({50, 50}, {32, 32}, player_texture);
-    Player enemy({50, 50}, {87, 36}, bug_texture);
+    Player enemy({300, 300}, {87, 36}, bug_texture);
 
     as->player = player;
     as->enemy = enemy;
@@ -139,7 +162,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     //https://stackoverflow.com/questions/26576625/how-can-i-correctly-calculate-the-time-delta
     float delta_time = current_time - prev_time; //probably makes zero sense
     delta_time /= 1000.0; //make it slow....
-    std::cout << "time: " << delta_time<<"\n";
+
+    const bool *key_states = SDL_GetKeyboardState(NULL);
 
     // clear renderer
     SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -152,13 +176,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     rectBricks.w = 16;
     rectBricks.h = 16;
 
-    //move player
     //kanske vertikal och horisontell speed för att simulera att ramla
     float speed = 50;
 
     std::pair<float,float> newDirection = direction_user_should_move(delta_time);
+    //kanske en newpos så att jag slipper göra två saker
     std::pair<float,float> newPos = as->player.coords + newDirection * speed;
-    // std::cout << newPos.first << " " << newDirection.first << " " << as->player.coords.first << "\n";
 
     as->player.coords = newPos;
 
@@ -174,6 +197,16 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     rectEnemy.w = as->enemy.sizes.first;
     rectEnemy.h = as->enemy.sizes.second;
 
+    if (as->player_holding == ACTION_HOLD) {
+        std::cout << "hello!\n";
+        SDL_FRect rectRock;
+        rectRock.x = as->player.coords.first;
+        rectRock.y = as->player.coords.second;
+        rectRock.w = 200;
+        rectRock.h = 146;
+        SDL_RenderTexture(as->renderer, as->rock_texture, NULL, &rectRock);
+    }
+
     SDL_RenderTexture(as->renderer, as->brick_texture, NULL, &rectBricks);
     SDL_RenderTexture(as->renderer, as->player.texture, NULL, &rectPlayer);
     SDL_RenderTexture(as->renderer, as->enemy.texture, NULL, &rectEnemy);
@@ -185,9 +218,18 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+    AppState *as = (AppState *) appstate;
+
     switch (event->type) {
     case SDL_EVENT_QUIT:
         return SDL_APP_SUCCESS;
+    case SDL_EVENT_KEY_DOWN:
+        std::cout << "hey boss\n";
+        as->player_holding = action_user_should_take(event);
+        break;
+    case SDL_EVENT_KEY_UP:
+        as->player_holding = action_user_should_take(event);
+        break;
     }
     return SDL_APP_CONTINUE;
 }
