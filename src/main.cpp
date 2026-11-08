@@ -99,16 +99,19 @@ struct AppState {
     SDL_Renderer *renderer;
 
     SDL_Texture * brick_texture;
-    SDL_Texture * rock_texture;
 
     //rock information? behöver size
     Action player_holding;
 
     Player player;
     Player enemy;
+    Player projectile;
 };
 
-Action action_user_should_take(const SDL_Event *e) {
+Action action_user_should_take(const AppState* as, const SDL_Event *e) {
+    if (!(e->key.scancode == SDL_SCANCODE_N)) {
+        return as->player_holding;
+    }
     if (e->type == SDL_EVENT_KEY_DOWN && e->key.scancode == SDL_SCANCODE_N) {
         return ACTION_HOLD;
     } else if (e->type == SDL_EVENT_KEY_UP && e->key.scancode == SDL_SCANCODE_N) {
@@ -138,17 +141,20 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     prev_time = SDL_GetTicks();
     as->player_holding = ACTION_NONE;
     as->brick_texture = IMG_LoadTexture(as->renderer, "assets/textures/bricks.png");
-    as->rock_texture = IMG_LoadTexture(as->renderer, "assets/textures/rock.png");
 
     SDL_Texture* player_texture = IMG_LoadTexture(as->renderer, "assets/textures/T.png");
     SDL_Texture* bug_texture = IMG_LoadTexture(as->renderer, "assets/textures/bug.png");
+    SDL_Texture* rock_texture = IMG_LoadTexture(as->renderer, "assets/textures/rock.png");
 
     Player player({50, 50}, {32, 32}, player_texture);
     Player enemy({300, 300}, {87, 36}, bug_texture);
 
+    //position doesn't matter because it's going to be spawned at the player
+    Player projectile({0, 0}, {200, 146}, rock_texture);
+
     as->player = player;
     as->enemy = enemy;
-
+    as->projectile = projectile;
     return SDL_APP_CONTINUE;
 }
 
@@ -198,13 +204,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     rectEnemy.h = as->enemy.sizes.second;
 
     if (as->player_holding == ACTION_HOLD) {
-        std::cout << "hello!\n";
         SDL_FRect rectRock;
-        rectRock.x = as->player.coords.first;
-        rectRock.y = as->player.coords.second;
-        rectRock.w = 200;
-        rectRock.h = 146;
-        SDL_RenderTexture(as->renderer, as->rock_texture, NULL, &rectRock);
+        rectRock.x = as->player.coords.first-50.0f;
+        rectRock.y = as->player.coords.second-50.0f;
+        rectRock.w = as->projectile.sizes.first;
+        rectRock.h = as->projectile.sizes.second;
+        SDL_RenderTexture(as->renderer, as->projectile.texture, NULL, &rectRock);
+    } else if (as->player_holding == ACTION_THROW) {
+        //throw rock
     }
 
     SDL_RenderTexture(as->renderer, as->brick_texture, NULL, &rectBricks);
@@ -225,10 +232,10 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
         return SDL_APP_SUCCESS;
     case SDL_EVENT_KEY_DOWN:
         std::cout << "hey boss\n";
-        as->player_holding = action_user_should_take(event);
+        as->player_holding = action_user_should_take(as, event);
         break;
     case SDL_EVENT_KEY_UP:
-        as->player_holding = action_user_should_take(event);
+        as->player_holding = action_user_should_take(as, event);
         break;
     }
     return SDL_APP_CONTINUE;
